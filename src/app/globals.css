@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* ============ Design tokens ============ */
+:root {
+  --bg: #f4f1ea;          /* warm paper */
+  --bg-2: #ece7dc;
+  --ink: #1a1712;         /* near-black warm */
+  --ink-soft: #5a5346;
+  --line: #d9d2c4;
+  --card: #ffffff;
+  --card-line: #e7e1d4;
+  --accent: #d4622a;      /* burnt orange */
+  --shadow: 0 1px 2px rgba(40,33,20,.06), 0 8px 24px rgba(40,33,20,.10);
+  --shadow-lift: 0 6px 12px rgba(40,33,20,.12), 0 24px 60px rgba(40,33,20,.22);
+  --grid: rgba(40,33,20,.05);
+}
+
+:root[data-theme="dark"] {
+  --bg: #14120f;
+  --bg-2: #1b1814;
+  --ink: #f3efe6;
+  --ink-soft: #a49c8c;
+  --line: #2c2823;
+  --card: #201d18;
+  --card-line: #322d26;
+  --accent: #e8934e;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.45);
+  --shadow-lift: 0 8px 16px rgba(0,0,0,.4), 0 30px 70px rgba(0,0,0,.6);
+  --grid: rgba(255,255,255,.045);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-card-line: var(--card-line);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  transition: background .5s ease, color .5s ease;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Paper / desk grain */
+.desk-surface {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
+  background-size: 26px 26px;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.font-display { font-family: var(--font-display), Georgia, serif; }
+
+/* Card chrome */
+.card-shadow { box-shadow: var(--shadow); }
+.card-lift { box-shadow: var(--shadow-lift); }
+
+.grabbing, .grabbing * { cursor: grabbing !important; }
+
+/* animated link underline */
+.link-underline {
+  position: relative;
+  transition: color .25s ease;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform .4s cubic-bezier(.22,1,.36,1);
+}
+.link-underline:hover { color: var(--accent); }
+.link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.float-in { animation: float-in .7s cubic-bezier(.2,.7,.2,1) both; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
