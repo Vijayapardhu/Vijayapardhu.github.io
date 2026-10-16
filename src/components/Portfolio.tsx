@@ -15,7 +15,6 @@ import { useBoard } from "@/lib/store";
 import { selectedProjects } from "@/data/projects";
 import {
   profile,
-  projects,
   experience,
   skills,
   timeline,
@@ -565,24 +564,44 @@ function WorkRow({ p, i }: { p: Project; i: number }) {
         transition={{ duration: 0.3 }}
       />
       <div className="flex items-start gap-6">
-        <span className="w-8 pt-2 font-mono text-[13px] text-ink-soft">0{i + 1}</span>
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <motion.span className="h-2.5 w-2.5 rounded-full" style={{ background: p.accent }} animate={{ scale: hover ? [1, 1.5, 1] : 1 }} transition={{ duration: 0.5 }} />
-            <h3 className="font-display text-3xl transition-transform duration-300 group-hover:translate-x-1 sm:text-4xl">{p.name}</h3>
-            <span className="font-mono text-[11px] text-ink-soft">· {p.type} · {p.year}</span>
+        <span className="w-8 shrink-0 pt-2 font-mono text-[13px] text-ink-soft">
+          0{i + 1}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <motion.span
+              className="h-2.5 w-2.5 rounded-full shrink-0"
+              style={{ background: p.accent }}
+              animate={{ scale: hover ? [1, 1.5, 1] : 1 }}
+              transition={{ duration: 0.5 }}
+            />
+            <h3
+              className="font-display text-3xl font-bold transition-transform duration-300 group-hover:translate-x-1 sm:text-4xl"
+              style={{ minWidth: 0 }}
+            >
+              {p.name}
+            </h3>
+            <span className="font-mono text-[11px] text-ink-soft shrink-0 whitespace-nowrap">
+              · {p.type} · {p.year}
+            </span>
           </div>
           <motion.div
             initial={false}
             animate={{ height: hover ? "auto" : 0, opacity: hover ? 1 : 0 }}
             transition={{ duration: 0.4, ease: EASE }}
-            className="overflow-hidden"
+            className="overflow-hidden mt-2"
           >
             <div className="pt-3 sm:max-w-2xl">
-              <p className="text-[15px] leading-relaxed text-ink-soft">{p.blurb}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <p className="text-[15px] leading-relaxed text-ink-soft">
+                {p.blurb}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
                 {p.highlights.map((h) => (
-                  <span key={h} className="rounded-md px-2 py-0.5 font-mono text-[11px]" style={{ background: `${p.accent}18`, color: p.accent }}>
+                  <span
+                    key={h}
+                    className="rounded-md px-2 py-0.5 font-mono text-[11px] shrink-0"
+                    style={{ background: `${p.accent}18`, color: p.accent }}
+                  >
                     {h}
                   </span>
                 ))}
@@ -590,9 +609,19 @@ function WorkRow({ p, i }: { p: Project; i: number }) {
             </div>
           </motion.div>
         </div>
-        <div className="hidden items-center gap-3 pt-2 sm:flex">
-          <span className="font-mono text-[11px] text-ink-soft">{p.stack.slice(0, 3).join(" · ")}</span>
-          <motion.span animate={{ rotate: hover ? 45 : 0, color: hover ? p.accent : "var(--ink-soft)" }} className="text-xl">↗</motion.span>
+        <div className="hidden shrink-0 items-center gap-3 pt-2 sm:flex">
+          <span className="font-mono text-[11px] text-ink-soft">
+            {p.stack.slice(0, 3).join(" · ")}
+          </span>
+          <motion.span
+            animate={{
+              rotate: hover ? 45 : 0,
+              color: hover ? p.accent : "var(--ink-soft)",
+            }}
+            className="text-xl"
+          >
+            ↗
+          </motion.span>
         </div>
       </div>
     </motion.a>
