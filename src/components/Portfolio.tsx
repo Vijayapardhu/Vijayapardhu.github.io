@@ -357,9 +357,17 @@ export default function Portfolio() {
                 <span className="font-mono text-[12px] text-ink-soft">No featured projects</span>
               </div>
             ) : (
-              featured.map((p, i) => (
-                <WorkRow key={p.id} p={p} i={i} />
-              ))
+              <>
+                {featured.map((p, i) => (
+                  <WorkRow key={p.id} p={p} i={i} />
+                ))}
+                <a
+                  href="#all-works"
+                  className="mt-12 inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-accent hover:text-ink transition-colors"
+                >
+                  View all works →
+                </a>
+              </>
             )}
           </div>
         </Chapter>
