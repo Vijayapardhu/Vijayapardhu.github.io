@@ -129,6 +129,11 @@ export function ReadmeContent({ repo }: { repo: string }) {
 
               // Convert inline markdown
               inner = inner
+                // Images ![alt](url) — MUST come before links
+                .replace(
+                  /!\[([^\]]*)\]\(([^)]+)\)/g,
+                  '<img src="$2" alt="$1" class="max-w-full h-auto my-6 rounded-lg border border-line" loading="lazy" />',
+                )
                 // Links [text](url)
                 .replace(
                   /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
@@ -137,11 +142,6 @@ export function ReadmeContent({ repo }: { repo: string }) {
                 .replace(
                   /\[([^\]]+)\]\(([^)]+)\)/g,
                   '<a href="$2" class="text-accent hover:underline">$1</a>',
-                )
-                // Images ![alt](url)
-                .replace(
-                  /!\[([^\]]*)\]\(([^)]+)\)/g,
-                  '<img src="$2" alt="$1" class="max-w-full h-auto my-6 rounded-lg border border-line" loading="lazy" />',
                 )
                 // Bold **text**
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
