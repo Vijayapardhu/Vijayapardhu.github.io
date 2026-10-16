@@ -5,6 +5,8 @@ import {
 } from "@/lib/github";
 import { completedProjects } from "@/data/projects";
 
+const GITHUB_USER = "Vijayapardhu";
+
 export function generateStaticParams() {
   return completedProjects.map((p) => ({
     slug: p.id,
@@ -55,23 +57,48 @@ export default async function ProjectPage({
         "utf-8",
       );
 
+      // Rewrite relative image URLs to GitHub raw content
+      const rawBase = `https://raw.githubusercontent.com/${GITHUB_USER}/${repoName}/main/`;
+      let text = decoded.replace(
+        /!\[([^\]]*)\]\(([^)]+)\)/g,
+        (match, alt, url) => {
+          const absUrl =
+            url.startsWith("http") || url.startsWith("//")
+              ? url
+              : rawBase + url.replace(/^\//, "");
+          return `![${alt}](${absUrl})`;
+        },
+      );
+
       // Protect code blocks and <details> blocks
       const protectedBlocks: string[] = [];
-      const protect = (text: string, regex: RegExp) =>
-        text.replace(regex, (match) => {
-          protectedBlocks.push(match);
+      const protect = (t: string, regex: RegExp) =>
+        t.replace(regex, (m) => {
+          protectedBlocks.push(m);
           return `___BLOCK_${protectedBlocks.length - 1}___`;
         });
 
-      let text = protect(decoded, /```[\s\S]*?```/g); // fenced code blocks
+      text = protect(text, /```[\s\S]*?```/g); // fenced code blocks
       text = protect(text, /<details[\s\S]*?<\/details>/g); // FAQ details
 
       // Convert headers
       text = text
-        .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
-        .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold mt-5 mb-2">$1</h2>')
-        .replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
-        .replace(/^#### (.+)$/gm, '<h4 class="text-lg font-bold mt-3 mb-1">$1</h4>');
+        .replace(
+          /^# (.+)$/gm,
+          '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>',
+        )
+        .replace(
+          /^## (.+)$/gm,
+          '<h2 class="text-2xl font-bold mt-5 mb-2">$1</h2>',
+        )
+        .replace(
+          /^### (.+)$/gm,
+          '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>',
+        )
+        .replace(
+          /^#### (.+)$/gm,
+          '<h4 class="text-lg font-bold mt-3 mb-1">$1</h4>',
+        );
 
       // Split by blank lines into paragraphs
       const parts = text.split(/\n\n+/);
@@ -85,7 +112,10 @@ export default async function ProjectPage({
         let inner = trimmed.replace(/___BLOCK_(\d+)___/g, (_, i) => {
           const block = protectedBlocks[Number(i)];
           if (block.startsWith("```")) {
-            const code = block.replace(/```\w*/, "").replace(/```$/, "").trim();
+            const code = block
+              .replace(/```\w*/, "")
+              .replace(/```$/, "")
+              .trim();
             return `<pre class="bg-bg-2 p-4 rounded-lg overflow-x-auto my-4"><code class="text-[11px] font-mono text-ink-soft">${code}</code></pre>`;
           }
           return block; // <details> block
@@ -118,10 +148,10 @@ export default async function ProjectPage({
             /\[([^\]]+)\]\(([^)]+)\)/g,
             '<a href="$2" class="text-accent hover:underline">$1</a>',
           )
-          // Images ![alt](url)
+          // Images ![alt](url) - already rewritten to absolute URLs
           .replace(
             /!\[([^\]]*)\]\(([^)]+)\)/g,
-            '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-lg" loading="lazy" />',
+            '<img src="$2" alt="$1" class="max-w-full h-auto my-6 rounded-lg border border-line" loading="lazy" />',
           )
           // Bold **text**
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -275,12 +305,9 @@ export default async function ProjectPage({
           </section>
         )}
 
-        {/* Readme */}
+        {/* Readme - main content */}
         {readmeHtml && (
           <section className="mb-14">
-            <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
-              Readme
-            </p>
             <div
               className="rounded-2xl border border-card-line bg-card p-8 sm:p-12 card-shadow prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: readmeHtml }}
