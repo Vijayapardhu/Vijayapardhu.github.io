@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
-import { fetchRepo, fetchRepoReadme, fetchRepoLanguages } from "@/lib/github";
+import {
+  fetchRepoReadme,
+  fetchRepoLanguages,
+} from "@/lib/github";
 import { completedProjects } from "@/data/projects";
 
 export function generateStaticParams() {
@@ -34,15 +37,12 @@ export default async function ProjectPage({
 }) {
   const { slug } = await params;
 
-  // Find project by slug to get the exact repo name (case-sensitive)
+  // Primary source: static project data (always works)
   const project = completedProjects.find((p) => p.id === slug);
   if (!project) notFound();
 
+  // Optional: enhance with GitHub API data (readme, languages, stars)
   const repoName = project.repo;
-
-  const repo = await fetchRepo(repoName).catch(() => null);
-  if (!repo) notFound();
-
   const [readmeRes, langRes] = await Promise.all([
     fetchRepoReadme(repoName).catch(() => null),
     fetchRepoLanguages(repoName).catch(() => null),
@@ -69,26 +69,20 @@ export default async function ProjectPage({
     }
   }
 
-  const updated = new Date(repo.updated_at).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  const created = new Date(repo.created_at).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   const langMap = (langRes ?? {}) as Record<string, number>;
   const langEntries = Object.entries(langMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
 
+  const totalLangBytes = Object.values(langMap).reduce(
+    (acc: number, b: number) => acc + b,
+    0
+  );
+
   return (
     <main className="min-h-dvh bg-bg text-ink">
       <nav className="border-b border-line bg-bg/50 sticky top-0 z-20 backdrop-blur">
-        <div className="mx-auto max-w-5xl px-5 py-3">
+        <div className="mx-auto max-w-5xl px-5 py-3 sm:px-10 lg:px-20">
           <a
             href="/"
             className="text-accent font-mono text-[12px] hover:text-ink transition-colors"
@@ -98,45 +92,39 @@ export default async function ProjectPage({
         </div>
       </nav>
 
-      <div className="mx-auto max-w-5xl px-5 py-12 sm:px-10 lg:px-20">
-        <div className="mb-10">
+      <div className="mx-auto max-w-5xl px-5 py-16 sm:px-10 lg:px-20">
+        {/* Header */}
+        <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: langColor[repo.language] || "var(--line)" }}
+              className="h-2 w-2 rounded-full shrink-0"
+              style={{ background: langColor[project.stack[0]] || "var(--line)" }}
             />
-            <span className="font-mono text-[10px] text-ink-soft">
-              {repo.language}
+            <span className="font-mono text-[10px] uppercase tracking-widest text-ink-soft">
+              {project.stack[0] ?? "Project"}
             </span>
-            {repo.forks_count > 0 && (
-              <span className="font-mono text-[10px] text-ink-soft">
-                · {repo.forks_count} forks
-              </span>
-            )}
-            {repo.stargazers_count > 0 && (
-              <span className="font-mono text-[10px] text-ink-soft">
-                · ★ {repo.stargazers_count}
-              </span>
-            )}
+            <span className="ml-auto font-mono text-[11px] text-accent">
+              {project.type}
+            </span>
           </div>
-          <h1 className="font-display text-[3rem] leading-[1.05] tracking-tight mb-4">
-            {repo.name}
+          <h1 className="font-display text-[3.5rem] leading-[1.02] tracking-tight mb-4 sm:text-[5rem]">
+            {project.name}
           </h1>
           <p className="text-lg leading-relaxed text-ink-soft max-w-2xl">
-            {repo.description || "No description available"}
+            {project.blurb}
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href={repo.html_url}
+              href={project.github ?? project.live ?? "#"}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-2.5 text-[13px] font-medium text-bg hover:shadow-[0_10px_30px_-8px_var(--accent)] transition-all"
             >
-              View on GitHub →
+              {project.github ? "View on GitHub →" : "Open Project →"}
             </a>
-            {repo.homepage && (
+            {project.live && project.github && (
               <a
-                href={repo.homepage}
+                href={project.live}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-line px-5 py-2.5 text-[13px] font-medium text-ink hover:border-accent transition-all"
@@ -145,23 +133,42 @@ export default async function ProjectPage({
               </a>
             )}
           </div>
-          <p className="mt-4 font-mono text-[11px] text-ink-soft">
-            Updated {updated} · Created {created}
+          <p className="mt-6 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            {project.year} · {project.kind === "phone" ? "Mobile App" : "Web App"} ·{' '}
+            {project.stack.join(" · ")}
           </p>
         </div>
 
+        {/* Tech Stack */}
+        {project.stack.length > 0 && (
+          <section className="mb-14">
+            <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+              Tech Stack
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {project.stack.map((s) => (
+                <span
+                  key={s}
+                  className="rounded-md px-3 py-1.5 font-mono text-[11.5px] shrink-0"
+                  style={{ background: `${project.accent}18`, color: project.accent }}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* GitHub Languages */}
         {langEntries.length > 0 && (
-          <section className="mb-10">
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
-              Languages
+          <section className="mb-14">
+            <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+              GitHub Languages
             </p>
             <div className="flex flex-wrap gap-2">
               {langEntries.map(([lang, bytes]) => {
-                const total = Object.values(langMap).reduce(
-                  (acc: number, b: number) => acc + b,
-                  0
-                );
-                const pct = total > 0 ? Math.round((bytes / total) * 100) : 0;
+                const pct =
+                  totalLangBytes > 0 ? Math.round((bytes / totalLangBytes) * 100) : 0;
                 return (
                   <div
                     key={lang}
@@ -169,7 +176,7 @@ export default async function ProjectPage({
                     title={`${lang} ${pct}%`}
                   >
                     <span
-                      className="h-2 w-12 rounded-full shrink-0 bg-accent/20"
+                      className="h-2 w-16 rounded-full shrink-0 bg-accent/20"
                       style={{ width: `${Math.max(pct, 5)}%` }}
                     >
                       <span
@@ -190,52 +197,35 @@ export default async function ProjectPage({
           </section>
         )}
 
+        {/* Readme */}
         {readmeHtml && (
-          <section className="mb-10">
+          <section className="mb-14">
             <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
               Readme
             </p>
             <div
-              className="rounded-2xl border border-card-line bg-card p-8 sm:p-10 card-shadow prose prose-sm max-w-none"
+              className="rounded-2xl border border-card-line bg-card p-8 sm:p-12 card-shadow prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: readmeHtml }}
             />
           </section>
         )}
 
-        <section className="border-t border-line pt-8">
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-soft mb-1">
-                Repository
-              </p>
-              <p className="text-[13px] text-ink">{repo.full_name}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-soft mb-1">
-                Default branch
-              </p>
-              <p className="text-[13px] font-mono text-ink">
-                {repo.default_branch}
-              </p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-soft mb-1">
-                Size
-              </p>
-              <p className="text-[13px] text-ink">
-                {(repo.size / 1024).toFixed(1)} MB
-              </p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-soft mb-1">
-                License
-              </p>
-              <p className="text-[13px] text-ink">
-                {repo.license?.name || "None"}
-              </p>
-            </div>
-          </div>
-        </section>
+        {/* Highlights */}
+        {project.highlights.length > 0 && (
+          <section className="mb-14">
+            <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+              Highlights
+            </p>
+            <ul className="space-y-3">
+              {project.highlights.map((h) => (
+                <li key={h} className="flex items-start gap-3 text-[14px] leading-relaxed text-ink-soft">
+                  <span className="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                  <span>{h}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </main>
   );

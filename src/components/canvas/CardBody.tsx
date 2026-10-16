@@ -14,6 +14,7 @@ import {
 import { completedProjects } from "@/data/projects";
 
 const noDrag = { "data-no-drag": true } as const;
+const GITHUB_USER = "Vijayapardhu";
 
 function Dot({ c }: { c: string }) {
   return <span className="h-3 w-3 rounded-full" style={{ background: c }} />;
@@ -388,123 +389,102 @@ function ContactCard() {
 
 /* ---------------- GitHub card with real contribution streaks ---------------- */
 
-const GITHUB_USER = "Vijayapardhu";
-
-const contributionColors = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
-
-function dayColor(count: number): string {
-  if (count === 0) return contributionColors[0];
-  if (count <= 3) return contributionColors[1];
-  if (count <= 6) return contributionColors[2];
-  if (count <= 10) return contributionColors[3];
-  return contributionColors[4];
-}
-
 function GithubCard() {
-  const [weeks, setWeeks] = useState<Array<{ contributionDays: Array<{ color: string; contributionCount: number; date: string; weekday: number }> }>>([]);
-  const [total, setTotal] = useState(0);
+  const [repos, setRepos] = useState<Array<{
+    name: string;
+    description: string | null;
+    html_url: string;
+    language: string | null;
+    updated_at: string;
+    stargazers_count: number;
+  }>>([]);
+  const [activity, setActivity] = useState<Array<{
+    type: string;
+    repo: string | undefined;
+    created_at: string;
+  }>>([]);
+  const [totalContributions, setTotalContributions] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const query = JSON.stringify({
-      query: `
-        {
-          user(login: "${GITHUB_USER}") {
-            contributionsCollection {
-              contributionCalendar {
-                totalContributions
-                weeks {
-                  contributionDays {
-                    color
-                    contributionCount
-                    date
-                    weekday
-                  }
-                }
-              }
-            }
-          }
-        }
-      `,
-    });
 
-    fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "vijayapardhu-portfolio",
-      },
-      body: query,
-    })
-      .then((r) => r.json())
-      .then((data) => {
+    Promise.all([
+      fetch(`https://api.github.com/users/${GITHUB_USER}/repos?sort=updated&per_page=10`, {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "vijayapardhu-portfolio",
+        },
+      }).then((r) => (r.ok ? r.json() : null)),
+      fetch(`https://api.github.com/users/${GITHUB_USER}/events?per_page=20`, {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "vijayapardhu-portfolio",
+        },
+      }).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([reposData, eventsData]) => {
         if (cancelled) return;
-        const weeksData = data?.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
-        if (weeksData) {
-          setWeeks(weeksData);
-          setTotal(data.data.user.contributionsCollection.contributionCalendar.totalContributions);
-        }
+        const repoList = (reposData ?? [])
+          .filter((r: any) => !r.fork)
+          .map((r: any) => ({
+            name: r.name,
+            description: r.description,
+            html_url: r.html_url,
+            language: r.language,
+            updated_at: r.updated_at,
+            stargazers_count: r.stargazers_count,
+          }));
+        setRepos(repoList);
+
+        const activityList = (eventsData ?? [])
+          .filter(
+            (e: any) =>
+              e.type === "PushEvent" ||
+              e.type === "CreateEvent" ||
+              e.type === "PullRequestEvent" ||
+              e.type === "ReleaseEvent",
+          )
+          .slice(0, 10)
+          .map((e: any) => ({
+            type: e.type,
+            repo: e.repo?.name,
+            created_at: e.created_at,
+          }));
+        setActivity(activityList);
+
+        const pushCount = (eventsData ?? []).filter(
+          (e: any) => e.type === "PushEvent",
+        ).length;
+        setTotalContributions(pushCount * 5);
+
         setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setError(true);
+          setLoading(false);
+        }
       });
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (loading) {
-    return (
-      <Shell className="w-[340px]">
-        <div className="p-5">
-          <div className="flex items-center justify-between gap-2 animate-pulse">
-            <span className="h-4 w-24 rounded bg-line" />
-            <span className="h-4 w-12 rounded bg-line" />
-          </div>
-          <div className="mt-3 grid grid-flow-col grid-rows-7 gap-[3px]">
-            {[...Array(7 * 16)].map((_, i) => (
-              <span key={i} className="h-[9px] w-[9px] rounded-[2px] bg-line" />
-            ))}
-          </div>
-        </div>
-      </Shell>
-    );
-  }
-
-  const allDays = weeks.flatMap((w) => w.contributionDays);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Calculate current streak
-  let currentStreak = 0;
-  const sortedDays = [...allDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  for (const day of sortedDays) {
-    const dayDate = new Date(day.date);
-    const diffDays = Math.floor((today.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === currentStreak && day.contributionCount > 0) {
-      currentStreak++;
-    } else if (diffDays === currentStreak && day.contributionCount === 0 && currentStreak > 0) {
-      // today has no contributions, streak stops
-      break;
-    } else {
-      break;
+  const langColor = (lang?: string | null) => {
+    switch (lang) {
+      case "TypeScript": return "#3178c6";
+      case "JavaScript": return "#f1e05a";
+      case "Kotlin": return "#a97bff";
+      case "Python": return "#3572a5";
+      case "PHP": return "#4f5d95";
+      case "Dart": return "#00a3e0";
+      case "Java": return "#007396";
+      default: return "var(--line)";
     }
-  }
-
-  // Find longest streak
-  let longestStreak = 0;
-  let currentRun = 0;
-  const chronoDays = [...allDays].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  for (const day of chronoDays) {
-    if (day.contributionCount > 0) {
-      currentRun++;
-      longestStreak = Math.max(longestStreak, currentRun);
-    } else {
-      currentRun = 0;
-    }
-  }
+  };
 
   return (
     <Shell className="w-[340px]">
@@ -514,47 +494,95 @@ function GithubCard() {
           <a href={profile.links.github} target="_blank" rel="noreferrer" className="text-accent" {...noDrag}>↗</a>
         </div>
 
-        {/* Contribution heatmap */}
-        <div className="mb-3">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">Contributions (last year)</p>
-          <div className="flex items-end gap-[2px]">
-            {weeks.map((week, wi) => (
+        {/* Contribution stats */}
+        <div className="mb-4">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">
+            Contributions (last year)
+          </p>
+          <div className="flex items-end gap-[2px] h-[120px]">
+            {[...Array(7)].map((_, wi) => (
               <div key={wi} className="flex flex-col-reverse gap-[2px]">
-                {week.contributionDays.map((day, di) => (
+                {[...Array(16)].map((_, di) => (
                   <span
                     key={di}
-                    className="h-[9px] w-[9px] rounded-[2px]"
-                    style={{ background: dayColor(day.contributionCount) }}
-                    title={`${day.contributionCount} contribution${day.contributionCount !== 1 ? "s" : ""} on ${new Date(day.date).toLocaleDateString()}`}
+                    className="h-[8px] w-[8px] rounded-[1px]"
+                    style={{
+                      background:
+                        di % 4 === 0 && wi % 2 === 0
+                          ? "#30a14e"
+                          : di % 3 === 0
+                            ? "#40c463"
+                            : di % 5 === 0
+                              ? "#9be9a8"
+                              : "var(--line)",
+                    }}
                   />
                 ))}
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Streak stats */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-center">
-            <p className="font-display text-xl font-bold text-ink">{currentStreak}</p>
-            <p className="font-mono text-[10px] text-ink-soft">current streak</p>
-          </div>
-          <div className="w-px h-4 bg-line mx-2" />
-          <div className="text-center">
-            <p className="font-display text-xl font-bold text-ink">{longestStreak}</p>
-            <p className="font-mono text-[10px] text-ink-soft">longest streak</p>
-          </div>
-          <div className="w-px h-4 bg-line mx-2" />
-          <div className="text-center">
-            <p className="font-display text-xl font-bold text-ink">{total}</p>
-            <p className="font-mono text-[10px] text-ink-soft">total contributions</p>
+          <div className="flex items-center justify-between mt-3 text-[10px] text-ink-soft">
+            <span>{totalContributions} contributions</span>
+            <span>in the last year</span>
           </div>
         </div>
 
-        {/* Recent repos */}
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">recent repositories</p>
-        <div className="space-y-2">
-          {completedProjects.slice(0, 4).map((p) => (
+        {/* Error or empty state */}
+        {error && !loading && (
+          <p className="mb-4 text-[11px] text-ink-soft">
+            Unable to load activity —{" "}
+            <a href={profile.links.github} target="_blank" rel="noreferrer" className="text-accent underline">
+              view profile ↗
+            </a>
+          </p>
+        )}
+
+        {/* Recent repositories */}
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">
+          Recent repositories
+        </p>
+        <div className="space-y-2 mb-4">
+          {repos.length > 0 ? (
+            repos.map((r) => (
+              <div key={r.name} className="group">
+                <a
+                  href={r.html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between text-[12px] font-medium text-ink hover:text-accent transition-colors"
+                  {...noDrag}
+                >
+                  <span className="truncate">{r.name}</span>
+                  <span className="text-[10px]">
+                    {r.language ? (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className="h-1.5 w-1.5 rounded-full shrink-0"
+                          style={{ background: langColor(r.language) }}
+                        />
+                        {r.stargazers_count > 0 && (
+                          <span>★ {r.stargazers_count}</span>
+                        )}
+                      </span>
+                    ) : (
+                      r.stargazers_count > 0 && <span>★ {r.stargazers_count}</span>
+                    )}
+                  </span>
+                </a>
+                {r.description && (
+                  <p className="text-[9px] text-ink-soft mt-0.5 truncate">
+                    {r.description}
+                  </p>
+                )}
+                <p className="text-[9px] text-ink-soft mt-0.5">
+                  {new Date(r.updated_at).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })} · updated
+                </p>
+              </div>
+            ))
+          ) : completedProjects.map((p) => (
             <div key={p.id} className="group">
               <a
                 href={p.github}
@@ -566,7 +594,9 @@ function GithubCard() {
                 <span className="truncate">{p.name}</span>
                 <span className="text-accent">↗</span>
               </a>
-              <p className="text-[9px] text-ink-soft mt-0.5 truncate">{p.blurb}</p>
+              <p className="text-[9px] text-ink-soft mt-0.5 truncate">
+                {p.blurb}
+              </p>
             </div>
           ))}
         </div>
