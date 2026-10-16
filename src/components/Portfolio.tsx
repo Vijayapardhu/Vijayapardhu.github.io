@@ -12,6 +12,7 @@ import {
 } from "motion/react";
 import Lenis from "lenis";
 import { useBoard } from "@/lib/store";
+import { selectedProjects } from "@/data/projects";
 import {
   profile,
   projects,
@@ -27,6 +28,20 @@ import {
   quickFacts,
   personal,
 } from "@/data/resume";
+
+type Project = {
+  id: string;
+  name: string;
+  blurb: string;
+  stack: string[];
+  live?: string;
+  github?: string;
+  accent: string;
+  kind: "browser" | "phone";
+  year: string;
+  type: string;
+  highlights: string[];
+};
 
 /* ---------------- shared motion ---------------- */
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -111,7 +126,9 @@ export default function Portfolio() {
   const setSurface = useBoard((s) => s.setSurface);
   const heroRef = useRef<HTMLDivElement>(null);
 
-  // buttery smooth scroll
+    // featured projects driven by the local projects data file
+  const [featured] = useState<Project[]>(selectedProjects);
+
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.075, wheelMultiplier: 1 });
     let raf = 0;
@@ -228,12 +245,21 @@ export default function Portfolio() {
           viewport={{ once: true, margin: "-80px" }}
           className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-4"
         >
-          {stats.map((s) => (
-            <motion.div key={s.label} variants={rise} className="bg-bg p-5 sm:p-8">
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              variants={rise}
+              className="bg-bg p-5 sm:p-8"
+            >
               <div className="font-display text-4xl tracking-tight sm:text-6xl">
-                <Counter to={s.to} suffix={s.suffix} />
+                <Counter
+                  to={s.to}
+                  suffix={s.suffix}
+                />
               </div>
-              <p className="mt-2 text-[13px] leading-tight text-ink-soft">{s.label}</p>
+              <p className="mt-2 text-[13px] leading-tight text-ink-soft">
+                {s.label}
+              </p>
             </motion.div>
           ))}
         </motion.section>
@@ -323,9 +349,15 @@ export default function Portfolio() {
         {/* ================= WORK ================= */}
         <Chapter n="03" title="Selected Work">
           <div className="-mt-2">
-            {projects.map((p, i) => (
-              <WorkRow key={p.id} p={p} i={i} />
-            ))}
+            {featured.length === 0 ? (
+              <div className="h-40 flex items-center justify-center rounded-3xl border border-line bg-card">
+                <span className="font-mono text-[12px] text-ink-soft">No featured projects</span>
+              </div>
+            ) : (
+              featured.map((p, i) => (
+                <WorkRow key={p.id} p={p} i={i} />
+              ))
+            )}
           </div>
         </Chapter>
 
@@ -511,7 +543,7 @@ function Chapter({ n, title, children }: { n: string; title: string; children: R
 }
 
 /* ---------------- work row ---------------- */
-function WorkRow({ p, i }: { p: (typeof projects)[number]; i: number }) {
+function WorkRow({ p, i }: { p: Project; i: number }) {
   const [hover, setHover] = useState(false);
   return (
     <motion.a

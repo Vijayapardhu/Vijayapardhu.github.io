@@ -13,7 +13,8 @@ import CommandPalette from "./canvas/CommandPalette";
 
 // logical tour order for focus navigation (skip stickers & coffee)
 const TOUR = [
-  "name", "about", "resume", "echoroom", "medi-advisor", "hey-sara",
+  "name", "about", "resume", "echoroom", "campus-connect", "ipl-auction", "truthly",
+  "syncwave", "get-it-done", "eventhub", "cc-cam", "hey-sara", "medi-advisor",
   "skills", "terminal", "folder", "timeline", "certs", "github", "now", "contact",
 ];
 

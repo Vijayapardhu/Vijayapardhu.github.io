@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CardModel } from "@/lib/store";
 import {
   profile,
@@ -11,6 +11,7 @@ import {
   nowBuilding,
   quotes,
 } from "@/data/resume";
+import { completedProjects } from "@/data/projects";
 
 const noDrag = { "data-no-drag": true } as const;
 
@@ -307,13 +308,13 @@ function FolderCard() {
         <div className="rounded-2xl rounded-tl-none border border-card-line bg-card p-4 card-shadow">
           <p className="mb-2 font-mono text-[11px] text-ink-soft">Projects/</p>
           <div className="space-y-1.5">
-            {projects.map((p) => (
+            {completedProjects.map((p) => (
               <div key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-bg">
                 <span className="grid h-6 w-6 place-items-center rounded-md text-[11px]" style={{ background: `${p.accent}22`, color: p.accent }}>
                   {p.name[0]}
                 </span>
                 <span className="text-[13px]">{p.name}</span>
-                <span className="ml-auto font-mono text-[10px] text-ink-soft">{p.stack[0]}</span>
+                <span className="ml-auto font-mono text-[10px] text-ink-soft">{p.stack[0] ?? "-"}</span>
               </div>
             ))}
             <div className="flex items-center gap-2 px-2 py-1.5 opacity-60">
@@ -385,24 +386,190 @@ function ContactCard() {
   );
 }
 
+/* ---------------- GitHub card with real contribution streaks ---------------- */
+
+const GITHUB_USER = "Vijayapardhu";
+
+const contributionColors = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
+
+function dayColor(count: number): string {
+  if (count === 0) return contributionColors[0];
+  if (count <= 3) return contributionColors[1];
+  if (count <= 6) return contributionColors[2];
+  if (count <= 10) return contributionColors[3];
+  return contributionColors[4];
+}
+
 function GithubCard() {
-  // fake contribution grid
-  const cells = Array.from({ length: 7 * 16 });
+  const [weeks, setWeeks] = useState<Array<{ contributionDays: Array<{ color: string; contributionCount: number; date: string; weekday: number }> }>>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const query = JSON.stringify({
+      query: `
+        {
+          user(login: "${GITHUB_USER}") {
+            contributionsCollection {
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays {
+                    color
+                    contributionCount
+                    date
+                    weekday
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+    });
+
+    fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "vijayapardhu-portfolio",
+      },
+      body: query,
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const weeksData = data?.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
+        if (weeksData) {
+          setWeeks(weeksData);
+          setTotal(data.data.user.contributionsCollection.contributionCalendar.totalContributions);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <Shell className="w-[340px]">
+        <div className="p-5">
+          <div className="flex items-center justify-between gap-2 animate-pulse">
+            <span className="h-4 w-24 rounded bg-line" />
+            <span className="h-4 w-12 rounded bg-line" />
+          </div>
+          <div className="mt-3 grid grid-flow-col grid-rows-7 gap-[3px]">
+            {[...Array(7 * 16)].map((_, i) => (
+              <span key={i} className="h-[9px] w-[9px] rounded-[2px] bg-line" />
+            ))}
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  const allDays = weeks.flatMap((w) => w.contributionDays);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Calculate current streak
+  let currentStreak = 0;
+  const sortedDays = [...allDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  for (const day of sortedDays) {
+    const dayDate = new Date(day.date);
+    const diffDays = Math.floor((today.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === currentStreak && day.contributionCount > 0) {
+      currentStreak++;
+    } else if (diffDays === currentStreak && day.contributionCount === 0 && currentStreak > 0) {
+      // today has no contributions, streak stops
+      break;
+    } else {
+      break;
+    }
+  }
+
+  // Find longest streak
+  let longestStreak = 0;
+  let currentRun = 0;
+  const chronoDays = [...allDays].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  for (const day of chronoDays) {
+    if (day.contributionCount > 0) {
+      currentRun++;
+      longestStreak = Math.max(longestStreak, currentRun);
+    } else {
+      currentRun = 0;
+    }
+  }
+
   return (
     <Shell className="w-[340px]">
       <div className="p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <p className="font-mono text-[12px]">github.com/vijayapardhu</p>
           <a href={profile.links.github} target="_blank" rel="noreferrer" className="text-accent" {...noDrag}>↗</a>
         </div>
-        <div className="mt-3 grid grid-flow-col grid-rows-7 gap-[3px]">
-          {cells.map((_, i) => {
-            const lvl = (i * 1103515245 + 12345) % 5;
-            const shades = ["var(--line)", "#9be9a833", "#40c46388", "#30a14e", "#216e39"];
-            return <span key={i} className="h-[9px] w-[9px] rounded-[2px]" style={{ background: shades[lvl] }} />;
-          })}
+
+        {/* Contribution heatmap */}
+        <div className="mb-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">Contributions (last year)</p>
+          <div className="flex items-end gap-[2px]">
+            {weeks.map((week, wi) => (
+              <div key={wi} className="flex flex-col-reverse gap-[2px]">
+                {week.contributionDays.map((day, di) => (
+                  <span
+                    key={di}
+                    className="h-[9px] w-[9px] rounded-[2px]"
+                    style={{ background: dayColor(day.contributionCount) }}
+                    title={`${day.contributionCount} contribution${day.contributionCount !== 1 ? "s" : ""} on ${new Date(day.date).toLocaleDateString()}`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="mt-3 text-[12px] text-ink-soft">Shipping consistently · Flutter · React · Laravel</p>
+
+        {/* Streak stats */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-center">
+            <p className="font-display text-xl font-bold text-ink">{currentStreak}</p>
+            <p className="font-mono text-[10px] text-ink-soft">current streak</p>
+          </div>
+          <div className="w-px h-4 bg-line mx-2" />
+          <div className="text-center">
+            <p className="font-display text-xl font-bold text-ink">{longestStreak}</p>
+            <p className="font-mono text-[10px] text-ink-soft">longest streak</p>
+          </div>
+          <div className="w-px h-4 bg-line mx-2" />
+          <div className="text-center">
+            <p className="font-display text-xl font-bold text-ink">{total}</p>
+            <p className="font-mono text-[10px] text-ink-soft">total contributions</p>
+          </div>
+        </div>
+
+        {/* Recent repos */}
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-soft">recent repositories</p>
+        <div className="space-y-2">
+          {completedProjects.slice(0, 4).map((p) => (
+            <div key={p.id} className="group">
+              <a
+                href={p.github}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between text-[12px] font-medium text-ink hover:text-accent transition-colors"
+                {...noDrag}
+              >
+                <span className="truncate">{p.name}</span>
+                <span className="text-accent">↗</span>
+              </a>
+              <p className="text-[9px] text-ink-soft mt-0.5 truncate">{p.blurb}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </Shell>
   );
