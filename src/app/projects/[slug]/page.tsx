@@ -55,7 +55,7 @@ export default async function ProjectPage({
         "utf-8",
       );
 
-      // Protect code blocks and <details> blocks so they aren't split by paragraph logic
+      // Protect code blocks and <details> blocks
       const protectedBlocks: string[] = [];
       const protect = (text: string, regex: RegExp) =>
         text.replace(regex, (match) => {
@@ -73,107 +73,73 @@ export default async function ProjectPage({
         .replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
         .replace(/^#### (.+)$/gm, '<h4 class="text-lg font-bold mt-3 mb-1">$1</h4>');
 
-      // Convert tables
-      text = text.replace(
-        /^\|(.+)|\n\|[-| :]+\|\n((?:\|.*\n)+)/gm,
-        (_match, headerRow, bodyRows) => {
-          const headers = headerRow
-            .split("|")
-            .map((h: string) => h.trim())
-            .filter(Boolean);
-          const rows = bodyRows
-            .trim()
-            .split("\n")
-            .map((row: string) =>
-              row
-                .split("|")
-                .map((c: string) => c.trim())
-                .filter(Boolean),
-            );
-          return `
-<table class="w-full mb-6 border-collapse border border-line rounded-lg">
-  <thead>
-    <tr class="bg-bg-2 text-accent text-[11px] uppercase tracking-widest">
-      ${headers.map((h: string) => `<th class="px-3 py-2 border-b border-line text-left">${h}</th>`).join("")}
-    </tr>
-  </thead>
-  <tbody>
-    ${rows
-      .map(
-        (row: string[]) => `
-      <tr class="text-[13px] text-ink-soft border-b border-line">
-        ${row.map((c: string) => `<td class="px-3 py-2">${c}</td>`).join("")}
-      </tr>
-    `,
-      )
-      .join("")}
-  </tbody>
-</table>
-        `;
-        },
-      );
+      // Split by blank lines into paragraphs
+      const parts = text.split(/\n\n+/);
 
-      // Convert inline code before other inline parsing
-      text = text.replace(/`([^`]+)`/g, '<code class="bg-accent/10 px-1 py-0.5 rounded text-[11px] font-mono text-accent">$1</code>');
+      let html = "";
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (!trimmed) continue;
 
-      // Split into paragraphs by blank lines
-      const paragraphs = text.split(/\n\n+/);
-
-      let html = paragraphs
-        .map((part) => {
-          const trimmed = part.trim();
-          if (!trimmed) return "";
-
-          // Already a block element or protected block
-          if (
-            trimmed.startsWith("<h") ||
-            trimmed.startsWith("<table") ||
-            trimmed.startsWith("<hr") ||
-            trimmed.startsWith("___BLOCK_")
-          ) {
-            return trimmed;
+        // Restore protected blocks first
+        let inner = trimmed.replace(/___BLOCK_(\d+)___/g, (_, i) => {
+          const block = protectedBlocks[Number(i)];
+          if (block.startsWith("```")) {
+            const code = block.replace(/```\w*/, "").replace(/```$/, "").trim();
+            return `<pre class="bg-bg-2 p-4 rounded-lg overflow-x-auto my-4"><code class="text-[11px] font-mono text-ink-soft">${code}</code></pre>`;
           }
+          return block; // <details> block
+        });
 
-          // Convert inline markdown within paragraph
-          let inner = trimmed
-            // Links [text](url)
-            .replace(
-              /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-              '<a href="$2" target="_blank" rel="noreferrer" class="text-accent hover:underline">$1</a>',
-            )
-            .replace(
-              /\[([^\]]+)\]\(([^)]+)\)/g,
-              '<a href="$2" class="text-accent hover:underline">$1</a>',
-            )
-            // Images ![alt](url)
-            .replace(
-              /!\[([^\]]*)\]\(([^)]+)\)/g,
-              '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-lg" loading="lazy" />',
-            )
-            // Bold **text**
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            // Italic *text*
-            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
-            // Inline links without brackets (bare URLs)
-            .replace(
-              /(https?:\/\/[^\s<>"']+)/g,
-              '<a href="$1" target="_blank" rel="noreferrer" class="text-accent hover:underline">$1</a>',
-            );
+        // If it's already a block element, output as-is
+        if (
+          inner.startsWith("<h") ||
+          inner.startsWith("<div") ||
+          inner.startsWith("<table") ||
+          inner.startsWith("<hr") ||
+          inner.startsWith("</div>") ||
+          inner.startsWith("</table>") ||
+          inner.startsWith("<pre") ||
+          inner.startsWith("<details") ||
+          inner.startsWith("</details>")
+        ) {
+          html += inner + "\n";
+          continue;
+        }
 
-          // Restore protected blocks
-          inner = inner.replace(/___BLOCK_(\d+)___/g, (_, i) => {
-            const block = protectedBlocks[Number(i)];
-            if (block.startsWith("```")) {
-              const lang = block.match(/```(\w*)/)?.[1] || "";
-              const code = block.replace(/```\w*/, "").replace(/```$/, "").trim();
-              return `<pre class="bg-bg-2 p-4 rounded-lg overflow-x-auto my-4"><code class="text-[11px] font-mono text-ink-soft">${code}</code></pre>`;
-            }
-            return block; // <details> block
-          });
+        // Convert inline markdown
+        inner = inner
+          // Links [text](url)
+          .replace(
+            /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noreferrer" class="text-accent hover:underline">$1</a>',
+          )
+          .replace(
+            /\[([^\]]+)\]\(([^)]+)\)/g,
+            '<a href="$2" class="text-accent hover:underline">$1</a>',
+          )
+          // Images ![alt](url)
+          .replace(
+            /!\[([^\]]*)\]\(([^)]+)\)/g,
+            '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-lg" loading="lazy" />',
+          )
+          // Bold **text**
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          // Italic *text*
+          .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+          // Inline code `code`
+          .replace(
+            /`([^`]+)`/g,
+            '<code class="bg-accent/10 px-1 py-0.5 rounded text-[11px] font-mono text-accent">$1</code>',
+          )
+          // Bare URLs
+          .replace(
+            /(https?:\/\/[^\s<>"']+)/g,
+            '<a href="$1" target="_blank" rel="noreferrer" class="text-accent hover:underline">$1</a>',
+          );
 
-          return `<p class="mb-4 text-[14px] leading-relaxed text-ink-soft">${inner}</p>`;
-        })
-        .join("");
+        html += `<p class="mb-4 text-[14px] leading-relaxed text-ink-soft">${inner}</p>\n`;
+      }
 
       readmeHtml = html;
     } catch {
