@@ -59,16 +59,29 @@ export default async function ProjectPage({
 
       // Rewrite relative image URLs to GitHub raw content
       const rawBase = `https://raw.githubusercontent.com/${GITHUB_USER}/${repoName}/main/`;
-      let text = decoded.replace(
-        /!\[([^\]]*)\]\(([^)]+)\)/g,
-        (match, alt, url) => {
-          const absUrl =
-            url.startsWith("http") || url.startsWith("//")
-              ? url
-              : rawBase + url.replace(/^\//, "");
-          return `![${alt}](${absUrl})`;
-        },
-      );
+      let text = decoded
+        // HTML <img src="...">
+        .replace(
+          /<img\s+([^>]*?)src="([^"]+)"([^>]*?)>/gi,
+          (match, before, url, after) => {
+            const absUrl =
+              url.startsWith("http") || url.startsWith("//")
+                ? url
+                : rawBase + url.replace(/^\//, "");
+            return `<img${before}src="${absUrl}"${after}>`;
+          },
+        )
+        // Markdown ![alt](url)
+        .replace(
+          /!\[([^\]]*)\]\(([^)]+)\)/g,
+          (match, alt, url) => {
+            const absUrl =
+              url.startsWith("http") || url.startsWith("//")
+                ? url
+                : rawBase + url.replace(/^\//, "");
+            return `![${alt}](${absUrl})`;
+          },
+        );
 
       // Protect code blocks and <details> blocks
       const protectedBlocks: string[] = [];
