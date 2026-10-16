@@ -12,7 +12,7 @@ import {
 } from "motion/react";
 import Lenis from "lenis";
 import { useBoard } from "@/lib/store";
-import { selectedProjects } from "@/data/projects";
+import { selectedProjects, completedProjects } from "@/data/projects";
 import {
   profile,
   experience,
@@ -252,7 +252,11 @@ export default function Portfolio() {
             >
               <div className="font-display text-4xl tracking-tight sm:text-6xl">
                 <Counter
-                  to={s.to}
+                  to={
+                    s.label === "Apps I've shipped"
+                      ? completedProjects.length
+                      : s.to
+                  }
                   suffix={s.suffix}
                 />
               </div>
