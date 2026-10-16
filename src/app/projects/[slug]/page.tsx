@@ -54,16 +54,47 @@ export default async function ProjectPage({
       const decoded = Buffer.from(readmeRes.content, "base64").toString(
         "utf-8",
       );
-      readmeHtml = decoded
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/^# (.+)$/gm, '<h2 class="text-2xl font-bold mt-4 mb-2">$1</h2>')
-        .replace(/^## (.+)$/gm, '<h3 class="text-xl font-bold mt-3 mb-1">$1</h3>')
-        .replace(/^### (.+)$/gm, '<h4 class="text-lg font-bold mt-2 mb-1">$1</h4>')
-        .replace(/\n\n/g, "</p><p>")
-        .replace(/\n/g, "<br>");
-      readmeHtml = `<p>${readmeHtml}</p>`;
+      // Protect code blocks first
+      const codeBlocks: string[] = [];
+      const protectedText = decoded.replace(/```[\s\S]*?```/g, (match) => {
+        codeBlocks.push(match);
+        return `___CODE_BLOCK_${codeBlocks.length - 1}___`;
+      });
+
+      // Convert markdown headers, leave raw HTML tags intact
+      let html = protectedText
+        .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
+        .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold mt-5 mb-2">$1</h2>')
+        .replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
+        .replace(/^#### (.+)$/gm, '<h4 class="text-lg font-bold mt-3 mb-1">$1</h4>')
+        .replace(/^\*\*\*(.+?)\*\*\*$/gm, '<strong><em>$1</em></strong>')
+        .replace(/^\*\*(.+?)\*\*$/gm, '<strong>$1</strong>')
+        .replace(/^\* (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/^---$/gm, '<hr class="my-6 border-line" />');
+
+      // Split into paragraphs and wrap plain text ones
+      html = html
+        .split(/\n\n+/)
+        .map((part) => {
+          const trimmed = part.trim();
+          if (!trimmed) return "";
+          // Already HTML (starts with <) or code block placeholder
+          if (trimmed.startsWith("<") || trimmed.startsWith("___CODE_BLOCK_")) {
+            return trimmed.replace(/\n/g, "<br>");
+          }
+          // Restore code blocks in this paragraph
+          const restored = trimmed
+            .replace(/___CODE_BLOCK_(\d+)___/g, (_, i) => {
+              const cb = codeBlocks[Number(i)];
+              return `<pre class="bg-bg-2 p-4 rounded-lg overflow-x-auto my-4"><code class="text-[11px] font-mono text-ink-soft">${cb.replace(/```/g, "").trim()}</code></pre>`;
+            })
+            .replace(/\n/g, "<br>");
+          return `<p class="mb-4 text-[14px] leading-relaxed text-ink-soft">${restored}</p>`;
+        })
+        .join("");
+
+      readmeHtml = html;
     } catch {
       readmeHtml = "";
     }
