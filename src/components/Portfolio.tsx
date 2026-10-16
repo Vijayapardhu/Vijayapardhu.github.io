@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   motion,
@@ -361,12 +362,12 @@ export default function Portfolio() {
                 {featured.map((p, i) => (
                   <WorkRow key={p.id} p={p} i={i} />
                 ))}
-                <a
-                  href="#all-works"
+                <Link
+                  href="/works/"
                   className="mt-12 inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-accent hover:text-ink transition-colors"
                 >
                   View all works →
-                </a>
+                </Link>
               </>
             )}
           </div>
