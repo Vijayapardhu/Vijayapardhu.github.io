@@ -10,6 +10,7 @@
 export type Project = {
   id: string;
   name: string;
+  repo: string;
   blurb: string;
   stack: string[];
   live?: string;
@@ -27,6 +28,7 @@ export const workingProjects: Project[] = [
   {
     id: "docbox",
     name: "DocBox",
+    repo: "DocBox",
     blurb:
       "AI-powered PDF editor — annotate, summarize, and edit documents locally.",
     stack: ["React", "Python", "AI"],
@@ -40,6 +42,7 @@ export const workingProjects: Project[] = [
   {
     id: "mcp-agent",
     name: "MCP Agent",
+    repo: "MCP-Agent",
     blurb:
       "AI agent built on the Model Context Protocol ecosystem for tool use and automation.",
     stack: ["TypeScript", "MCP", "AI Agents"],
@@ -58,6 +61,7 @@ export const completedProjects: Project[] = [
   {
     id: "echoroom",
     name: "EchoRoom",
+    repo: "EchoRoom",
     blurb:
       "Real-time anonymous communication platform inspired by Omegle — instant text, voice & video chat with integrated screen sharing over peer-to-peer.",
     stack: ["React", "WebRTC", "Node.js", "Socket.IO"],
@@ -72,6 +76,7 @@ export const completedProjects: Project[] = [
   {
     id: "medi-advisor",
     name: "Medi Advisor",
+    repo: "MediAdvisor",
     blurb:
       "AI-powered healthcare platform that predicts diseases from symptoms and suggests medicines using Gemini AI.",
     stack: ["React", "Gemini AI", "Vercel"],
@@ -86,6 +91,7 @@ export const completedProjects: Project[] = [
   {
     id: "hey-sara",
     name: "Hey Sara",
+    repo: "HeySara",
     blurb:
       "Fully offline Android smart assistant inspired by Google Assistant — wake-word detection with Porcupine, voice commands & API integrations, built from scratch.",
     stack: ["Java", "Android", "Porcupine SDK"],
@@ -100,6 +106,7 @@ export const completedProjects: Project[] = [
   {
     id: "campus-connect",
     name: "Campus Connect",
+    repo: "Campus-Connect",
     blurb:
       "Copy on one laptop, paste on another. An encrypted, room-based clipboard and chat for devices on the same network — AES-256-GCM, no cloud, no account.",
     stack: ["Electron", "React", "TypeScript", "AES-256-GCM"],
@@ -114,6 +121,7 @@ export const completedProjects: Project[] = [
   {
     id: "ipl-auction",
     name: "IPL Auction",
+    repo: "ipl-auction",
     blurb:
       "Live IPL player auction platform — real-time bidding, team building, and auctioneer controls. Deployed on Vercel.",
     stack: ["JavaScript", "React", "Node.js"],
@@ -128,6 +136,7 @@ export const completedProjects: Project[] = [
   {
     id: "truthly",
     name: "Truthly",
+    repo: "truthly",
     blurb:
       "Verification and fact-checking platform to help users validate information and combat misinformation.",
     stack: ["TypeScript", "React"],
@@ -142,6 +151,7 @@ export const completedProjects: Project[] = [
   {
     id: "syncwave",
     name: "SyncWave",
+    repo: "SyncWave",
     blurb:
       "Native Android app for syncing data across devices — built with Kotlin. Real-time synchronization with minimal latency.",
     stack: ["Kotlin", "Android"],
@@ -155,6 +165,7 @@ export const completedProjects: Project[] = [
   {
     id: "get-it-done",
     name: "Get It Done",
+    repo: "Get-It-Done",
     blurb:
       "Task and productivity app to organize your work, set priorities, and get things done.",
     stack: ["TypeScript", "React"],
@@ -168,6 +179,7 @@ export const completedProjects: Project[] = [
   {
     id: "eventhub",
     name: "EventHub",
+    repo: "EventHub",
     blurb:
       "Full-stack web application for creating, viewing, and RSVPing to events. Built with the MERN stack.",
     stack: ["MongoDB", "Express", "React", "Node.js"],
@@ -181,6 +193,7 @@ export const completedProjects: Project[] = [
   {
     id: "cc-cam",
     name: "cc-cam",
+    repo: "cc-cam",
     blurb: "Camera and media utility project.",
     stack: [],
     github: "https://github.com/Vijayapardhu/cc-cam",

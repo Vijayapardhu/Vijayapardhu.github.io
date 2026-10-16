@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { fetchRepo, fetchRepoReadme, fetchRepoLanguages } from "@/lib/github";
-import { projects } from "@/data/resume";
+import { completedProjects } from "@/data/projects";
 
 export function generateStaticParams() {
-  return projects.map((p) => ({
+  return completedProjects.map((p) => ({
     slug: p.id,
   }));
 }
@@ -34,12 +34,18 @@ export default async function ProjectPage({
 }) {
   const { slug } = await params;
 
-  const repo = await fetchRepo(slug).catch(() => null);
+  // Find project by slug to get the exact repo name (case-sensitive)
+  const project = completedProjects.find((p) => p.id === slug);
+  if (!project) notFound();
+
+  const repoName = project.repo;
+
+  const repo = await fetchRepo(repoName).catch(() => null);
   if (!repo) notFound();
 
   const [readmeRes, langRes] = await Promise.all([
-    fetchRepoReadme(slug).catch(() => null),
-    fetchRepoLanguages(slug).catch(() => null),
+    fetchRepoReadme(repoName).catch(() => null),
+    fetchRepoLanguages(repoName).catch(() => null),
   ]);
 
   let readmeHtml = "";
@@ -103,10 +109,14 @@ export default async function ProjectPage({
               {repo.language}
             </span>
             {repo.forks_count > 0 && (
-              <span className="font-mono text-[10px] text-ink-soft">· {repo.forks_count} forks</span>
+              <span className="font-mono text-[10px] text-ink-soft">
+                · {repo.forks_count} forks
+              </span>
             )}
             {repo.stargazers_count > 0 && (
-              <span className="font-mono text-[10px] text-ink-soft">· ★ {repo.stargazers_count}</span>
+              <span className="font-mono text-[10px] text-ink-soft">
+                · ★ {repo.stargazers_count}
+              </span>
             )}
           </div>
           <h1 className="font-display text-[3rem] leading-[1.05] tracking-tight mb-4">

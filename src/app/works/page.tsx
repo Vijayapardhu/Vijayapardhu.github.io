@@ -2,6 +2,10 @@ import Link from "next/link";
 import { completedProjects } from "@/data/projects";
 
 export default function WorksPage() {
+  const totalStacks = new Set(
+    completedProjects.flatMap((p) => p.stack)
+  ).size;
+
   return (
     <main className="min-h-dvh bg-bg text-ink">
       <nav className="border-b border-line bg-bg/50 sticky top-0 z-20 backdrop-blur">
@@ -15,30 +19,43 @@ export default function WorksPage() {
         </div>
       </nav>
 
-      <div className="mx-auto max-w-5xl px-5 py-16 sm:px-10 lg:px-20">
-        <div className="mb-12">
+      <div className="mx-auto max-w-5xl px-5 py-20 sm:px-10 lg:px-20">
+        <div className="mb-16">
           <p className="font-mono text-[12px] uppercase tracking-[0.3em] text-accent">
             03 — Works
           </p>
-          <h1 className="font-display text-[3rem] leading-[1.05] tracking-tight mt-3 sm:text-[5rem]">
+          <h1 className="font-display text-[4rem] leading-[1] tracking-tight mt-2 sm:text-[6rem]">
             All Works
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-ink-soft max-w-2xl">
-            Completed and shipped projects across web, mobile, and desktop.
+          <p className="mt-6 text-lg leading-relaxed text-ink-soft max-w-2xl">
+            Completed and shipped projects across web, mobile, and desktop —
+            built for real clients, not just side projects.
           </p>
-          <p className="mt-4 font-mono text-[11px] text-ink-soft">
-            {completedProjects.length} projects shipped ·{' '}
-            {completedProjects.reduce((acc, p) => acc + p.stack.length, 0)} technologies used
-          </p>
+          <div className="mt-8 flex flex-wrap gap-4 text-xs">
+            <span className="flex items-center gap-1 text-ink-soft">
+              {completedProjects.length} projects shipped
+            </span>
+            <span className="flex items-center gap-1 text-ink-soft">
+              {totalStacks} technologies
+            </span>
+            <span className="flex items-center gap-1 text-ink-soft">
+              {completedProjects.filter((p) => p.live).length} live demos
+            </span>
+          </div>
         </div>
 
-        <div className="grid gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {completedProjects.map((p, i) => (
-            <Link
+            <article
               key={p.id}
-              href={`/projects/${p.id}/`}
-              className="group relative block border border-card-line bg-card rounded-2xl overflow-hidden hover:border-accent transition-colors"
+              className="group relative border border-card-line bg-card rounded-2xl overflow-hidden hover:border-accent transition-all duration-300"
             >
+              {/* Accent top border */}
+              <div
+                className="absolute left-0 top-0 right-0 h-1"
+                style={{ background: p.accent }}
+              />
+
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <span
@@ -52,14 +69,19 @@ export default function WorksPage() {
                     {p.type}
                   </span>
                 </div>
-                <h3 className="font-display text-2xl font-bold mb-3 group-hover:text-accent transition-colors">
-                  {p.name}
-                </h3>
-                <p className="text-[14px] leading-relaxed text-ink-soft mb-5">
+                <Link
+                  href={`/projects/${p.id}/`}
+                  className="group-hover:text-accent transition-colors"
+                >
+                  <h3 className="font-display text-2xl font-bold mb-2">
+                    {p.name}
+                  </h3>
+                </Link>
+                <p className="text-[14px] leading-relaxed text-ink-soft mb-5 line-clamp-2">
                   {p.blurb}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {p.stack.slice(0, 6).map((s) => (
+                  {p.stack.slice(0, 5).map((s) => (
                     <span
                       key={s}
                       className="rounded-md px-2.5 py-1 font-mono text-[11px] shrink-0"
@@ -68,35 +90,49 @@ export default function WorksPage() {
                       {s}
                     </span>
                   ))}
+                  {p.stack.length > 5 && (
+                    <span className="rounded-md px-2.5 py-1 font-mono text-[11px] shrink-0 bg-line text-ink-soft">
+                      +{p.stack.length - 5}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-[11px] text-ink-soft">
-                    Live →
-                  </span>
+                <div className="flex flex-wrap gap-3">
                   {p.live && (
-                    <a
+                    <Link
                       href={p.live}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-lg bg-ink px-3 py-1.5 text-[11px] font-medium text-bg hover:shadow-[0_10px_30px_-8px_var(--accent)] transition-all"
+                      className="rounded-lg bg-ink px-3.5 py-2 text-[11.5px] font-medium text-bg hover:shadow-[0_10px_30px_-8px_var(--accent)] transition-all"
                     >
-                      Open
-                    </a>
+                      Live Demo ↗
+                    </Link>
                   )}
                   {p.github && (
-                    <a
+                    <Link
                       href={p.github}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-lg border border-line px-3 py-1.5 text-[11px] font-medium text-ink hover:border-accent transition-all"
+                      className="rounded-lg border border-line px-3.5 py-2 text-[11.5px] font-medium text-ink hover:border-accent hover:text-accent transition-all"
                     >
-                      Code
-                    </a>
+                      Code ↗
+                    </Link>
                   )}
                 </div>
               </div>
-            </Link>
+            </article>
           ))}
+        </div>
+
+        <div className="mt-16 border-t border-line pt-10 flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            © Vijaya Pardhu — 2026
+          </span>
+          <Link
+            href="/"
+            className="text-accent font-mono text-[12px] hover:text-ink transition-colors"
+          >
+            Back to portfolio →
+          </Link>
         </div>
       </div>
     </main>
