@@ -12,7 +12,6 @@ export function ReadmeContent({ repo }: { repo: string }) {
     let cancelled = false;
 
     const load = async () => {
-      const rawBase = `https://raw.githubusercontent.com/${GITHUB_USER}/${repo}/main/`;
 
       try {
         const readmeRes = await fetch(
@@ -32,16 +31,17 @@ export function ReadmeContent({ repo }: { repo: string }) {
               "utf-8",
             );
 
-            // Rewrite relative image URLs to GitHub raw content
+            // Rewrite relative image URLs to /screenshots/ (served from public folder)
             let text = decoded
               // HTML <img src="...">
               .replace(
                 /<img\s+([^>]*?)src="([^"]+)"([^>]*?)>/gi,
                 (match, before, url, after) => {
-                  const absUrl =
-                    url.startsWith("http") || url.startsWith("//")
-                      ? url
-                      : rawBase + url.replace(/^\//, "");
+                  if (url.startsWith("http") || url.startsWith("//")) {
+                    return match;
+                  }
+                  const fileName = url.split("/").pop();
+                  const absUrl = `/screenshots/${fileName}`;
                   return `<img${before}src="${absUrl}"${after}>`;
                 },
               )
@@ -49,11 +49,11 @@ export function ReadmeContent({ repo }: { repo: string }) {
               .replace(
                 /!\[([^\]]*)\]\(([^)]+)\)/g,
                 (match, alt, url) => {
-                  const absUrl =
-                    url.startsWith("http") || url.startsWith("//")
-                      ? url
-                      : rawBase + url.replace(/^\//, "");
-                  return `![${alt}](${absUrl})`;
+                  if (url.startsWith("http") || url.startsWith("//")) {
+                    return match;
+                  }
+                  const fileName = url.split("/").pop();
+                  return `![${alt}](/screenshots/${fileName})`;
                 },
               );
 
